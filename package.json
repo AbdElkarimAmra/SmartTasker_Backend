@@ -1,0 +1,19 @@
+{
+  "name": "fullstack-node",
+  "version": "1.0.0",
+  "description": "FullStack NodeJS project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbdElkarimAmra/fullstack-node.git"
+  },
+  "author": "karim",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AbdElkarimAmra/fullstack-node/issues"
+  },
+  "homepage": "https://github.com/AbdElkarimAmra/fullstack-node#readme"
+}
