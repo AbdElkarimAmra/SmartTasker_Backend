@@ -1,10 +1,10 @@
 
-const errorLogger = require("../../../helpers/errorLogger");
-const Task = require("../../../tasks/task.schema")
+const errorLogger = require("../../helpers/errorLogger");
+const Task = require("../../tasks/task.schema")
 const {StatusCodes} = require("http-status-codes");
 const {matchedData} = require("express-validator");
-const UserModel = require("../../../Users/user.schema");
-const getUserByEmail = require("/Users/karimamra/Desktop/fullstack-node/src/Users/providers/getUserByEmail.js");
+const UserModel = require("../../Users/user.schema");
+const getUserByEmail = require("../../Users/providers/getUserByEmail");
 const bcrypt = require("bcrypt");
 
 const generateTokenProvider = require("./generateTokenProvider");

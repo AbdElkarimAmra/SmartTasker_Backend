@@ -10,7 +10,7 @@ const getTaskValidator = [
     query("page").customSanitizer((value, {req}) => {
         return value || 1 //or //return value ? value : 1
     }),
-    query("order", "order must be asc or desc").optional().isIn(["asc", "desc"]),  
+    query("order", "order must be asc or desc").optional().isIn(["asc", "dsc"]),  
      query("order").customSanitizer((value, {req}) => {
         return value || "asc" //or //return value ? value : "asc"
     })

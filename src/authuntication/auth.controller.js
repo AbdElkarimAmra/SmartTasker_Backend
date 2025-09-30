@@ -1,4 +1,4 @@
-const loginProvider = require("./validators/providers/login.provider");
+const loginProvider = require("./providers/login.provider");
 
 async function handleLogin(req, res) {
     return await loginProvider(req, res);

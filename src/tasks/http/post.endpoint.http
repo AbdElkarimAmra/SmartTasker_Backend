@@ -1,12 +1,16 @@
 POST http://localhost:3001/tasks
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OGE1MmRkMzA4OTYyMjQ1MTg3NWUxOGQiLCJlbWFpbCI6ImthcmltbzEyMzQudXNlckBnbWFpbC5jb20iLCJpYXQiOjE3NTU3NDMwODIsImV4cCI6MTc1NTgyOTQ4Mn0.i2z6BsAahYIP_RgHeNFEO2MnZxRI69vRkmr-Jj5bHoE
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OGJmODc1MzliMDQ4MmE4ZWFiMWQ4NzYiLCJlbWFpbCI6ImthbWtvbUBnbWFpbC5jb20iLCJpYXQiOjE3NTc0NDAxNzAsImV4cCI6MTc1NzUyNjU3MH0.YbpT2blo3VMYWwyseukNOlGE5lcWlhSvNrVbTXKBpPI
 
 {
-  "title": "Title Of the Task",
+  "title": "kamkom1",
   "dueDate": "2025-01-01T12:00:00Z",
   "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lobortis diam vel malesuada ultricies.",
   "priority": "normal",
   "status": "todo"
 }
+
+
+
+
 

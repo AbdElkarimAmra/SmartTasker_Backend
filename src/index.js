@@ -25,7 +25,9 @@ const cors = require("cors");
 const configureApp = require("./settings/config");
 const { table } = require("console");
 const {DB_USER, DB_PASS, PORT} = process.env;
-
+console.log("DB_USER:", JSON.stringify(DB_USER));           // shows hidden whitespace
+console.log("DB_PASS length:", DB_PASS?.length);            // no password printed
+console.log("Encoded user/pass lengths:", encodeURIComponent(DB_USER).length, encodeURIComponent(DB_PASS).length);
 
 console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("TEST_VARIABLE:", process.env.TEST_VARIABLE);
