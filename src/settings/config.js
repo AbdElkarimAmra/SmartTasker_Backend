@@ -6,8 +6,7 @@ dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 const express = require("express");
 const morgan = require("morgan");
-const fs = require("fs");
-const path = require("path");
+
 
 const router = require("../tasks/tasksrouter");
 const authRouter = require("../authuntication/auth.router");
@@ -15,7 +14,6 @@ const usersRouter = require("../Users/users.router");
 const aiRouter = require("../AI/AI.router");
 
 const responseFormatter = require("../middleware/responseFormatter");
-const expressWinstonLogger = require("../middleware/expressWinston.middleware");
 const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const specs = require("../settings/swagger.config");
@@ -28,7 +26,6 @@ function configureApp(app) {
 
   // common middleware
   app.use(responseFormatter.requestFormatter);
-  app.use(expressWinstonLogger);
 
   // CORS (adjust origin as needed)
   app.use(
@@ -39,13 +36,17 @@ function configureApp(app) {
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     })
   );
+  
+  app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "SmartTasker Backend"
+  });
+});
 
   // access logs
-  const accessLogStream = fs.createWriteStream(
-    path.join(__dirname, "..", "access.log"),
-    { flags: "a" }
-  );
-  app.use(morgan("combined", { stream: accessLogStream }));
+
+  app.use(morgan("combined"))
 
   // -------- Routes --------
   // Public (no JWT)

@@ -1,83 +1,67 @@
-const dotenv = require("dotenv")
 
-//if process.env.NODE_ENV is not set, it will be set to development
-process.env.NODE_ENV = process.env.NODE_ENV || "development";
-const envFile = `.env.${process.env.NODE_ENV}`;
+const dotenv = require("dotenv");
+
+process.env.NODE_ENV =
+  process.env.NODE_ENV || "development";
+
 dotenv.config();
-dotenv.config({path: envFile});
+dotenv.config({
+  path: `.env.${process.env.NODE_ENV}`
+});
 
 const express = require("express");
-const morgan = require("morgan");
-const fs = require("fs");
-const path = require("path");
-
-
-const router = require("./tasks/tasksrouter");
-const authRouter = require("./authuntication/auth.router");
-const usersRouter = require("./Users/users.router");
-const aiRouter = require("./AI/AI.router");
-const responseFormatter = require("./middleware/responseFormatter");
-const expressWinstonLogger = require("./middleware/expressWinston.middleware");
-
 const mongoose = require("mongoose");
-
-const cors = require("cors");
-
 const configureApp = require("./settings/config");
-const { table } = require("console");
-const {DB_USER, DB_PASS, PORT} = process.env;
-console.log("DB_USER:", JSON.stringify(DB_USER));           // shows hidden whitespace
-console.log("DB_PASS length:", DB_PASS?.length);            // no password printed
-console.log("Encoded user/pass lengths:", encodeURIComponent(DB_USER).length, encodeURIComponent(DB_PASS).length);
 
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("TEST_VARIABLE:", process.env.TEST_VARIABLE);
+const app = express();
 
-const app = express();  
-
-
-app.use(express.json());
-
+// Register middleware and routes only once
 configureApp(app);
 
-app.use(responseFormatter.requestFormatter);
-app.use(expressWinstonLogger);
-
-
-let accessLogStream = fs.createWriteStream(path.join(__dirname, "..","access.log"), {
-    flags: "a", //appends to the existing files of logs. does not overwrite the file
+// Handle Express errors
+app.use((err, req, res, next) => {
+  console.error("Express error:", err);
+  res.status(500).json({
+    error: "Internal server error"
+  });
 });
 
-app.use(morgan("combined", {stream: accessLogStream}));
+// Vercel imports this Express application
+module.exports = app;
 
-const middleware = function (req, res, next) {
-    req.info = {app: "my app", version: "1.0.0"}
-    next();
-}
-app.use(middleware);
+// Local development only, for now.
+// MongoDB on Vercel will be configured later.
+if (!process.env.VERCEL) {
+  const { DB_USER, DB_PASS, PORT } = process.env;
 
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(500).json({ error: err.codeName || err.message });
-});
+  if (!DB_USER || !DB_PASS) {
+    console.error("Missing MongoDB credentials");
+    process.exitCode = 1;
+  } else {
+    const username = encodeURIComponent(DB_USER);
+    const password = encodeURIComponent(DB_PASS);
 
-async function bootstrap(){
-    try{
-        await mongoose.connect("mongodb+srv://" + DB_USER + ":" + DB_PASS + "@nodejs.1vboval.mongodb.net/"  , 
-            {dbName: "fullstackTasks"});
-        console.log("connected to MongoDB");
-        app.listen(PORT, () => {
-        console.log("app is listening on port 3001"); 
+    const uri =
+      `mongodb+srv://${username}:${password}` +
+      `@nodejs.1vboval.mongodb.net/`;
+
+    mongoose
+      .connect(uri, { dbName: "fullstackTasks" })
+      .then(() => {
+        console.log("Connected to MongoDB");
+
+        app.listen(PORT || 3001, () => {
+          console.log(
+            `Backend listening on port ${PORT || 3001}`
+          );
         });
-        console.log(process.env.NODE_ENV);
-    }
-
-    catch(error) {
-        console.log(error);
-        process.exit(1);
-    }
+      })
+      .catch((error) => {
+        console.error(
+          "MongoDB connection failed:",
+          error.message
+        );
+        process.exitCode = 1;
+      });
+  }
 }
-bootstrap();
-
-
-
