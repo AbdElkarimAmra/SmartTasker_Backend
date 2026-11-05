@@ -5,6 +5,11 @@ const errorLogger = require("../../helpers/errorLogger");
 
 async function getTasksProvider(req, res) {
   const data = matchedData(req);
+
+  const statusFilter = { status: { $in: ["todo", "inProgress"] } };
+  const userIdFilter = { user: req.user.sub };
+
+  const statusIdCombinedFilter = {...statusFilter, ...userIdFilter};
   
 
 
@@ -12,24 +17,26 @@ async function getTasksProvider(req, res) {
   try {
     // Pagination required properties
     // Count of all documents
-    const totalTasks = await Task.countDocuments();
+    const totalTasks = await Task.countDocuments(statusIdCombinedFilter);
     // Base URL
     const baseUrl = `${req.protocol}://${req.get("host")}${
       req.originalUrl.split("?")[0]
     }`;
 
-    const countCompletedTasks = await Task.countDocuments({
+    const countCompletedTasks = await Task.countDocuments({...userIdFilter,
       status: "completed",
     });
 
-    const countInProgressTasks = await Task.countDocuments({
+    const countInProgressTasks = await Task.countDocuments({...userIdFilter,
       status: "inProgress",
     });
 
-    const countTodoTasks = await Task.countDocuments({ status: "todo" });
+    const countTodoTasks = await Task.countDocuments({...userIdFilter, status: "todo" });
 
-    const statusFilter = { status: { $in: ["todo", "inProgress"] } };
+    
     const totalVisibleTasks = await Task.countDocuments(statusFilter);
+
+    
     // currentPage
     const currentPage = data.page;
     // limit
@@ -46,9 +53,9 @@ async function getTasksProvider(req, res) {
     // Fetch Data
     
 
-    const tasks = await Task.find(statusFilter)
+    const tasks = await Task.find({ ...userIdFilter, ...statusFilter })
       .limit(limit)
-      .skip(currentPage - 1)
+      .skip((currentPage - 1) * limit)
       .sort({
         createdAt: data.order === "asc" ? 1 : -1,
       });
@@ -85,3 +92,5 @@ async function getTasksProvider(req, res) {
 }
 
 module.exports = getTasksProvider;
+
+

@@ -24,6 +24,8 @@
     "nodemon": "^3.1.7"
   },
   "dependencies": {
+    "@langchain/core": "^1.0.2",
+    "@langchain/openai": "^1.4.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
@@ -38,6 +40,7 @@
     "morgan": "^1.10.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "zod": "^4.1.12"
   }
 }

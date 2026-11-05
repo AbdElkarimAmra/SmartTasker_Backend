@@ -15,6 +15,7 @@ const path = require("path");
 const router = require("./tasks/tasksrouter");
 const authRouter = require("./authuntication/auth.router");
 const usersRouter = require("./Users/users.router");
+const aiRouter = require("./AI/AI.router");
 const responseFormatter = require("./middleware/responseFormatter");
 const expressWinstonLogger = require("./middleware/expressWinston.middleware");
 
@@ -66,7 +67,7 @@ async function bootstrap(){
             {dbName: "fullstackTasks"});
         console.log("connected to MongoDB");
         app.listen(PORT, () => {
-        console.log("app is listening on port 3001"); // http://localhost:301
+        console.log("app is listening on port 3001"); 
         });
         console.log(process.env.NODE_ENV);
     }

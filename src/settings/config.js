@@ -1,11 +1,10 @@
-const dotenv = require("dotenv")
-
-//if process.env.NODE_ENV is not set, it will be set to development
+// src/settings/config.js (CJS)
+const dotenv = require("dotenv");
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
-const envFile = `.env.${process.env.NODE_ENV}`;
 dotenv.config();
-dotenv.config({path: envFile});
+dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
+const express = require("express");
 const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
@@ -13,34 +12,60 @@ const path = require("path");
 const router = require("../tasks/tasksrouter");
 const authRouter = require("../authuntication/auth.router");
 const usersRouter = require("../Users/users.router");
+const aiRouter = require("../AI/AI.router");
+
 const responseFormatter = require("../middleware/responseFormatter");
 const expressWinstonLogger = require("../middleware/expressWinston.middleware");
 const cors = require("cors");
-
 const swaggerUi = require("swagger-ui-express");
-const  specs  = require("../settings/swagger.config");
+const specs = require("../settings/swagger.config");
+
+// ✅ use your existing middleware file (no ".middleware" suffix)
+const authenticateToken = require("../middleware/authenticateToken.middleware");
 
 function configureApp(app) {
-    app.use(responseFormatter.requestFormatter);
-    app.use(expressWinstonLogger);
+  app.use(express.json());
 
-    app.use(cors());
+  // common middleware
+  app.use(responseFormatter.requestFormatter);
+  app.use(expressWinstonLogger);
 
-    let accessLogStream = fs.createWriteStream(path.join(__dirname, "..","access.log"), {
-        flags: "a", //appends to the existing files of logs. does not overwrite the file
-    });
+  // CORS (adjust origin as needed)
+  app.use(
+    cors({
+      origin: process.env.WEB_ORIGIN || true,
+      credentials: true,
+      allowedHeaders: ["Content-Type", "Authorization"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    })
+  );
 
-    app.use(morgan("combined", {stream: accessLogStream}));
+  // access logs
+  const accessLogStream = fs.createWriteStream(
+    path.join(__dirname, "..", "access.log"),
+    { flags: "a" }
+  );
+  app.use(morgan("combined", { stream: accessLogStream }));
 
-    app.use("/", router);
-    app.use("/auth", authRouter);
-    app.use("/Users", usersRouter);
-    
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs)); // these are swaggerSpecs
+  // -------- Routes --------
+  // Public (no JWT)
+  app.use("/auth", authRouter); // login/register/refresh
 
-    app.use((req, res) => {
-    res.status(404).json(null)
-})
+  // Protected (require JWT)
+  app.use("/AI", authenticateToken, aiRouter);
+  app.use("/Users", usersRouter);
+
+  // If tasks should require login, keep this:
+  app.use("/", authenticateToken, router);
+
+  // If tasks should be public instead, use this line and remove the line above:
+  // app.use("/", router);
+
+  // Swagger
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
+  // 404
+  app.use((req, res) => res.status(404).json(null));
 }
 
 module.exports = configureApp;
