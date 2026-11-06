@@ -28,9 +28,15 @@ function configureApp(app) {
   app.use(responseFormatter.requestFormatter);
 
   // CORS (adjust origin as needed)
+    const allowedOrigins = [
+    "http://localhost:5174",
+    "https://smart-tasker-react.vercel.app",
+    "https://smart-tasker-react-g0jcr7b81-kemo24.vercel.app",
+  ];
+
   app.use(
     cors({
-      origin: "smart-tasker-react-g0jcr7b81-kemo24.vercel.app" || true,
+      origin: allowedOrigins,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
