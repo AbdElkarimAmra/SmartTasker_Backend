@@ -30,12 +30,22 @@ function configureApp(app) {
   // CORS (adjust origin as needed)
   app.use(
     cors({
-      origin: process.env.WEB_ORIGIN || true,
+      origin: "smart-tasker-react-g0jcr7b81-kemo24.vercel.app" || true,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     })
   );
+
+  app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  
+  // Handle the preflight OPTIONS request for private networks specifically
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
   
   app.get("/health", (req, res) => {
   res.status(200).json({
