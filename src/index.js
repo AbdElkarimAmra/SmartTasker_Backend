@@ -15,29 +15,21 @@ const configureApp = require("./settings/config");
 
 const app = express();
 
-// Register middleware and routes only once
-configureApp(app);
+// Reuse a database connection across requests
+let connectionPromise = null;
 
-// Handle Express errors
-app.use((err, req, res, next) => {
-  console.error("Express error:", err);
-  res.status(500).json({
-    error: "Internal server error"
-  });
-});
+async function connectMongoDB() {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
 
-// Vercel imports this Express application
-module.exports = app;
+  if (!connectionPromise) {
+    const { DB_USER, DB_PASS } = process.env;
 
-// Local development only, for now.
-// MongoDB on Vercel will be configured later.
-if (!process.env.VERCEL) {
-  const { DB_USER, DB_PASS, PORT } = process.env;
+    if (!DB_USER || !DB_PASS) {
+      throw new Error("DB_USER or DB_PASS is missing");
+    }
 
-  if (!DB_USER || !DB_PASS) {
-    console.error("Missing MongoDB credentials");
-    process.exitCode = 1;
-  } else {
     const username = encodeURIComponent(DB_USER);
     const password = encodeURIComponent(DB_PASS);
 
@@ -45,23 +37,65 @@ if (!process.env.VERCEL) {
       `mongodb+srv://${username}:${password}` +
       `@nodejs.1vboval.mongodb.net/`;
 
-    mongoose
-      .connect(uri, { dbName: "fullstackTasks" })
+    connectionPromise = mongoose
+      .connect(uri, {
+        dbName: "fullstackTasks",
+        serverSelectionTimeoutMS: 10000
+      })
       .then(() => {
-        console.log("Connected to MongoDB");
-
-        app.listen(PORT || 3001, () => {
-          console.log(
-            `Backend listening on port ${PORT || 3001}`
-          );
-        });
+        console.log("MongoDB connected");
       })
       .catch((error) => {
-        console.error(
-          "MongoDB connection failed:",
-          error.message
-        );
-        process.exitCode = 1;
+        connectionPromise = null;
+        throw error;
       });
   }
+
+  await connectionPromise;
+}
+
+// Ensure database is available before DB-dependent routes
+async function databaseMiddleware(req, res, next) {
+  try {
+    await connectMongoDB();
+    next();
+  } catch (error) {
+    console.error("MongoDB connection failed:", error.message);
+
+    res.status(503).json({
+      status: "error",
+      message: "Database temporarily unavailable"
+    });
+  }
+}
+
+// Register middleware and routes
+configureApp(app, databaseMiddleware);
+
+// Express error handler
+app.use((err, req, res, next) => {
+  console.error("Express error:", err);
+
+  res.status(500).json({
+    error: "Internal server error"
+  });
+});
+
+// Export for Vercel
+module.exports = app;
+
+// Local development server
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3001;
+
+  connectMongoDB()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error("Startup failed:", error.message);
+      process.exitCode = 1;
+    });
 }

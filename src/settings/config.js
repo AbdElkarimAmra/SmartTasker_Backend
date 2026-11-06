@@ -1,34 +1,32 @@
-// src/settings/config.js (CJS)
-const dotenv = require("dotenv");
-process.env.NODE_ENV = process.env.NODE_ENV || "development";
-dotenv.config();
-dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
 
-
+// Routes
 const router = require("../tasks/tasksrouter");
 const authRouter = require("../authuntication/auth.router");
 const usersRouter = require("../Users/users.router");
 const aiRouter = require("../AI/AI.router");
 
+// Middleware
 const responseFormatter = require("../middleware/responseFormatter");
-const cors = require("cors");
-const swaggerUi = require("swagger-ui-express");
-const specs = require("../settings/swagger.config");
-
-// ✅ use your existing middleware file (no ".middleware" suffix)
 const authenticateToken = require("../middleware/authenticateToken.middleware");
 
-function configureApp(app) {
+// Swagger
+const specs = require("./swagger.config");
+
+function configureApp(app, databaseMiddleware) {
+
+  // 1. Parse incoming JSON requests
   app.use(express.json());
 
-  // common middleware
+  // 2. Format requests
   app.use(responseFormatter.requestFormatter);
 
-  // CORS (adjust origin as needed)
-    const allowedOrigins = [
+  // 3. CORS configuration
+  const allowedOrigins = [
     "http://localhost:5174",
     "https://smart-tasker-react.vercel.app",
     "https://smart-tasker-react-g0jcr7b81-kemo24.vercel.app",
@@ -43,46 +41,54 @@ function configureApp(app) {
     })
   );
 
-  app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Private-Network', 'true');
-  
-  // Handle the preflight OPTIONS request for private networks specifically
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
-});
-  
+  // 4. HTTP request logging
+  // Console output works on Vercel
+  app.use(morgan("combined"));
+
+  // 5. Public health check
+  // Does not require authentication or MongoDB
   app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    service: "SmartTasker Backend"
+    res.status(200).json({
+      status: "ok",
+      service: "SmartTasker Backend",
+    });
   });
-});
 
-  // access logs
+  // 6. Database connection middleware
+  // Connect to MongoDB before handling API requests
+  if (typeof databaseMiddleware !== "function") {
+    throw new Error("databaseMiddleware must be provided");
+  }
 
-  app.use(morgan("combined"))
+  app.use(databaseMiddleware);
 
-  // -------- Routes --------
-  // Public (no JWT)
-  app.use("/auth", authRouter); // login/register/refresh
+  // 7. Public authentication routes
+  app.use("/auth", authRouter);
 
-  // Protected (require JWT)
+  // 8. AI routes - protected by JWT
   app.use("/AI", authenticateToken, aiRouter);
+
+  // 9. User routes
+  // Preserve existing route-level authentication behavior
   app.use("/Users", usersRouter);
 
-  // If tasks should require login, keep this:
+  // 10. Swagger documentation
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(specs)
+  );
+
+  // 11. Protected task routes
   app.use("/", authenticateToken, router);
 
-  // If tasks should be public instead, use this line and remove the line above:
-  // app.use("/", router);
-
-  // Swagger
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
-
-  // 404
-  app.use((req, res) => res.status(404).json(null));
+  // 12. Handle unknown routes
+  app.use((req, res) => {
+    res.status(404).json({
+      status: "error",
+      message: "Route not found",
+    });
+  });
 }
 
 module.exports = configureApp;
