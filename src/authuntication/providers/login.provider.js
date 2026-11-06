@@ -1,44 +1,77 @@
 
-const errorLogger = require("../../helpers/errorLogger");
-const Task = require("../../tasks/task.schema")
-const {StatusCodes} = require("http-status-codes");
-const {matchedData} = require("express-validator");
-const UserModel = require("../../Users/user.schema");
-const getUserByEmail = require("../../Users/providers/getUserByEmail");
+const { StatusCodes } = require("http-status-codes");
+const { matchedData } = require("express-validator");
 const bcrypt = require("bcrypt");
 
+const getUserByEmail = require("../../Users/providers/getUserByEmail");
 const generateTokenProvider = require("./generateTokenProvider");
-async function  loginProvider(req, res) {
 
-    try {
-        const validatedData = matchedData(req);
-        const { email, password } = matchedData(req);
-        console.log('[login] validatedData:', { email: !!email, password: !!password });
+async function loginProvider(req, res) {
+  try {
+    // 1. Get validated input
+    const { email, password } = matchedData(req);
 
-        //get the specific use loggin in
-        
-const user = await getUserByEmail(email?.toLowerCase());
-console.log('[login] user exists:', !!user, 'hasPassword:', !!user?.password);        
-        //check if the hashed password is correct by comparing the password in the incoming request validated.data.password with the password in the database for user available thorugh user.password
-        const result = await bcrypt.compare(validatedData.password, user.password);
-        
-        if (!result){
-            return res.status(StatusCodes.UNAUTHORIZED).json({reason: "Invalid credentials. Please try again."});
-        }
-        const token = await generateTokenProvider(user);
-        return res.status(StatusCodes.OK).json({
-            accessToken: token,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email:user.email,  
-        }
-        );
-    } catch (error) {
-        errorLogger("Error while trying to login", req, error);
-        return res.status(StatusCodes.GATEWAY_TIMEOUT).json(
-            {reason: "unable to process ur request at the moment"}
-        )
+    if (!email || !password) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        reason: "Email and password are required"
+      });
     }
-}  
 
-module.exports = loginProvider
+    // 2. Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 3. Find the user
+    const user = await getUserByEmail(normalizedEmail);
+
+    console.log("[login] User found:", !!user);
+
+    // 4. Handle a missing user
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        reason: "Invalid email or password"
+      });
+    }
+
+    // 5. Verify stored password hash exists
+    if (!user.password) {
+      console.error("[login] User password hash missing");
+
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        reason: "Unable to process login"
+      });
+    }
+
+    // 6. Compare passwords
+    const passwordMatches = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!passwordMatches) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        reason: "Invalid email or password"
+      });
+    }
+
+    // 7. Generate authentication token
+    const token = await generateTokenProvider(user);
+
+    // 8. Return successful login response
+    return res.status(StatusCodes.OK).json({
+      accessToken: token,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email
+    });
+
+  } catch (error) {
+    console.error("[login] Error type:", error.name);
+    console.error("[login] Error message:", error.message);
+
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      reason: "Unable to process login"
+    });
+  }
+}
+
+module.exports = loginProvider;
